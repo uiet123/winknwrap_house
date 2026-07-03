@@ -2,14 +2,26 @@
 
 import Image from "next/image";
 import Link from "next/link";
+import dynamic from "next/dynamic";
 import { useEffect, useRef, useState } from "react";
-import { motion, useScroll, useTransform, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence, useScroll, useTransform } from "framer-motion";
 import { useCart } from "@/context/CartContext";
 import { products } from "@/data/products";
 import styles from "./page.module.css";
 
+// Client-only: the hero renders a WebGL <Canvas> that must not be prerendered.
+const Hero3D = dynamic(() => import("@/components/Hero3D"), { ssr: false });
+
 export default function Home() {
   const revealRefs = useRef<(HTMLElement | null)[]>([]);
+  const heroTextRef = useRef<HTMLDivElement>(null);
+
+  // Scroll-driven scale: text starts small and grows as user scrolls
+  const { scrollYProgress: heroTextProgress } = useScroll({
+    target: heroTextRef,
+    offset: ["start end", "end start"],
+  });
+  const heroTextScale = useTransform(heroTextProgress, [0, 1], [0.6, 1.15]);
 
   useEffect(() => {
     const observer = new IntersectionObserver(
@@ -51,21 +63,21 @@ export default function Home() {
     '/reviews/Screenshot_20260701_174110_Instagram.jpg',
     '/reviews/Screenshot_20260701_174122_Instagram.jpg',
   ];
-  const reviews = [...baseReviews, ...baseReviews, ...baseReviews]; 
+  const reviews = [...baseReviews, ...baseReviews, ...baseReviews];
 
   const [currentSlide, setCurrentSlide] = useState(0);
   const [showSplash, setShowSplash] = useState(true);
   const [fadeSplash, setFadeSplash] = useState(false);
 
-  const { 
-    cart, 
-    isCartOpen, 
-    setIsCartOpen, 
-    addToCart, 
-    updateQuantity, 
-    removeFromCart, 
-    cartTotal, 
-    handleWhatsAppCheckout 
+  const {
+    cart,
+    isCartOpen,
+    setIsCartOpen,
+    addToCart,
+    updateQuantity,
+    removeFromCart,
+    cartTotal,
+    handleWhatsAppCheckout
   } = useCart();
 
   useEffect(() => {
@@ -77,16 +89,12 @@ export default function Home() {
     const timer = setInterval(() => {
       setCurrentSlide((prev) => (prev + 1) % heroImages.length);
     }, 5000);
-    
+
     return () => {
       clearInterval(timer);
       clearTimeout(splashTimer);
     };
   }, [heroImages.length]);
-
-  const { scrollY } = useScroll();
-  const heroScale = useTransform(scrollY, [0, 800], [1, 0.85]);
-  const heroOpacity = useTransform(scrollY, [0, 600], [1, 0]);
 
   return (
     <main className={styles.main}>
@@ -94,49 +102,61 @@ export default function Home() {
       {showSplash && (
         <div className={`${styles.splashScreen} ${fadeSplash ? styles.splashFadeOut : ''}`}>
           <div className={styles.splashLogoContainer}>
-            <Image 
-              src="/logo/540349204_17844998094558720_3448244895683446768_n.jpg" 
-              alt="Wick n Wrap House Logo" 
-              width={180} height={180} 
+            <Image
+              src="/logo/540349204_17844998094558720_3448244895683446768_n.jpg"
+              alt="Wick n Wrap House Logo"
+              width={180} height={180}
               quality={100}
               unoptimized={true}
-              className={styles.splashLogoImage} 
+              className={styles.splashLogoImage}
             />
           </div>
         </div>
       )}
 
-      {/* Fullscreen Cinematic Hero */}
-      <motion.section 
-        className={styles.hero}
-        style={{ scale: heroScale, opacity: heroOpacity }}
-      >
+      {/* Fullscreen Cinematic 3D Candle Hero */}
+      <section className={styles.hero}>
         <div className={styles.heroBg}>
           <div className={styles.heroOverlay}></div>
         </div>
-        
-        <div className={styles.heroContent}>
-          <h1>Illuminate<br/>The Moment</h1>
+
+        <Hero3D />
+      </section>
+
+      {/* Illuminate The Moment — scrolls up over the sticky candle */}
+      <section className={styles.hero3dTextSection} ref={heroTextRef}>
+        <motion.div
+          className={styles.heroContent}
+          style={{ scale: heroTextScale }}
+        >
+          <h1>Illuminate<br />The Moment</h1>
           <p>Exquisite Scents & Luxury Gifting</p>
           <a href="#collection" className={`btn ${styles.btnGlow}`}>View Collection</a>
-        </div>
-      </motion.section>
+        </motion.div>
+      </section>
 
       {/* Trust & Stats Section */}
-      <motion.section 
+      <motion.section
         className={styles.statsSection}
-        initial={{ scale: 0.95, opacity: 0, y: 50 }}
-        whileInView={{ scale: 1, opacity: 1, y: 0 }}
-        transition={{ duration: 0.8, ease: "easeOut" }}
+        initial={{ opacity: 0 }}
+        whileInView={{ opacity: 1 }}
+        transition={{ duration: 0.5 }}
         viewport={{ once: false, amount: 0.2 }}
       >
         <div className={styles.sectionHeader}>
           <span>Our Commitment</span>
-          <h2>Craftsmanship & Quality</h2>
+          <h2>Craftsmanship &amp; Quality</h2>
         </div>
 
         <div className={styles.statsCards}>
-          <div className={styles.premiumBadge}>
+          {/* Left card — slides in from left */}
+          <motion.div
+            className={styles.premiumBadge}
+            initial={{ x: -200, opacity: 0, rotate: -8 }}
+            whileInView={{ x: 0, opacity: 1, rotate: 0 }}
+            transition={{ duration: 0.8, ease: "easeOut", delay: 0.1 }}
+            viewport={{ once: false, amount: 0.3 }}
+          >
             <div className={styles.badgeIcon}>
               <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"></path></svg>
             </div>
@@ -144,9 +164,16 @@ export default function Home() {
               <span className={styles.badgeTitle}>Premium Quality</span>
               <span className={styles.badgeValue}>100% Hand-Poured</span>
             </div>
-          </div>
+          </motion.div>
 
-          <div className={styles.premiumBadge}>
+          {/* Center card — drops from top */}
+          <motion.div
+            className={styles.premiumBadge}
+            initial={{ y: -120, opacity: 0, scale: 0.8 }}
+            whileInView={{ y: 0, opacity: 1, scale: 1 }}
+            transition={{ duration: 0.8, ease: "easeOut", delay: 0.25 }}
+            viewport={{ once: false, amount: 0.3 }}
+          >
             <div className={styles.badgeIcon}>
               <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 20A7 7 0 0 1 14 6c3.48 0 6 2.52 6 6 0 7.73-7.58 12-10 12-4.42 0-8-3.58-8-8a8 8 0 0 1 13-6"></path></svg>
             </div>
@@ -154,9 +181,16 @@ export default function Home() {
               <span className={styles.badgeTitle}>Eco-Friendly</span>
               <span className={styles.badgeValue}>100% Soy Wax</span>
             </div>
-          </div>
+          </motion.div>
 
-          <div className={styles.premiumBadge}>
+          {/* Right card — slides in from right */}
+          <motion.div
+            className={styles.premiumBadge}
+            initial={{ x: 200, opacity: 0, rotate: 8 }}
+            whileInView={{ x: 0, opacity: 1, rotate: 0 }}
+            transition={{ duration: 0.8, ease: "easeOut", delay: 0.1 }}
+            viewport={{ once: false, amount: 0.3 }}
+          >
             <div className={styles.avatarGroup}>
               <div className={styles.avatar}></div>
               <div className={styles.avatar}></div>
@@ -166,93 +200,123 @@ export default function Home() {
               <span className={styles.badgeTitle}>Customer Reviews</span>
               <span className={styles.badgeValue}>4.9/5 Rating</span>
             </div>
-          </div>
+          </motion.div>
         </div>
       </motion.section>
 
       {/* Asymmetrical Collection Section */}
-      <motion.section 
-        id="collection" 
+      <section
+        id="collection"
         className={styles.section}
-        initial={{ scale: 0.95, opacity: 0, y: 50 }}
-        whileInView={{ scale: 1, opacity: 1, y: 0 }}
-        transition={{ duration: 0.8, ease: "easeOut" }}
-        viewport={{ once: false, amount: 0.1 }}
       >
         <div className="container">
-          <div className={`${styles.sectionHeader} reveal`} ref={addToRefs}>
+          <motion.div
+            className={`${styles.sectionHeader} reveal`}
+            ref={addToRefs}
+            initial={{ opacity: 0, y: 40 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.7, ease: "easeOut" }}
+            viewport={{ once: false, amount: 0.5 }}
+          >
             <span>Our Craft</span>
             <h2>The Collection</h2>
-          </div>
+          </motion.div>
 
           <div className={styles.ecommerceGrid}>
             {products.map((item, i) => {
               const cartItem = cart.find(c => c.title === item.title);
               const quantity = cartItem ? cartItem.quantity : 0;
+              const col = i % 4;
+              // Alternating directions: cols 0,1 from left, cols 2,3 from right
+              const fromLeft = col < 2;
               return (
-              <div key={item.id + i} className={`${styles.productCard} reveal`} ref={addToRefs} style={{ transitionDelay: `${(i % 4) * 0.15}s` }}>
-                 <div className={`${styles.productImageWrap} img-wrap`}>
-                   <Link href={`/product/${item.id}`} style={{ display: 'block', width: '100%', height: '100%', position: 'absolute', top: 0, left: 0, zIndex: 1 }}>
-                     <Image 
-                        src={item.img} 
-                        alt={item.title} 
-                        fill 
-                        className={`${styles.productImage} img-parallax`} 
-                     />
-                   </Link>
-                   <AnimatePresence mode="wait">
-                     {quantity === 0 ? (
-                         <motion.button 
-                           key="addBtn"
-                           initial={{ opacity: 0, scale: 0.5 }}
-                           animate={{ opacity: 1, scale: 1 }}
-                           exit={{ opacity: 0, scale: 0.5 }}
-                           transition={{ duration: 0.2 }}
-                           className={styles.addToCartBtn} 
-                           aria-label="Add to Cart"
-                           onClick={(e) => { e.preventDefault(); addToCart(item); }}
-                           style={{ zIndex: 2 }}
-                         >
-                         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                           <line x1="12" y1="5" x2="12" y2="19"></line>
-                           <line x1="5" y1="12" x2="19" y2="12"></line>
-                         </svg>
-                       </motion.button>
-                     ) : (
-                       <motion.div 
-                         key="controls"
-                         initial={{ opacity: 0, scale: 0.8 }}
-                         animate={{ opacity: 1, scale: 1 }}
-                         exit={{ opacity: 0, scale: 0.8 }}
-                         transition={{ duration: 0.2 }}
-                         className={styles.productCardCartControls} 
-                         style={{ zIndex: 2 }}
-                       >
-                         <button onClick={(e) => { e.preventDefault(); updateQuantity(item.title, -1); }} aria-label="Decrease quantity">
-                           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line></svg>
-                         </button>
-                         <span>{quantity}</span>
-                         <button onClick={(e) => { e.preventDefault(); updateQuantity(item.title, 1); }} aria-label="Increase quantity">
-                           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
-                         </button>
-                       </motion.div>
-                     )}
-                   </AnimatePresence>
-                 </div>
-                 <div className={styles.productInfo}>
+                <motion.div
+                  key={item.id + i}
+                  className={`${styles.productCard}`}
+                  initial={{
+                    opacity: 0,
+                    x: fromLeft ? -80 : 80,
+                    y: 60,
+                    rotateY: fromLeft ? -15 : 15,
+                    scale: 0.85,
+                  }}
+                  whileInView={{
+                    opacity: 1,
+                    x: 0,
+                    y: 0,
+                    rotateY: 0,
+                    scale: 1,
+                  }}
+                  transition={{
+                    duration: 0.7,
+                    ease: [0.25, 0.46, 0.45, 0.94],
+                    delay: (col) * 0.12,
+                  }}
+                  viewport={{ once: false, amount: 0.15 }}
+                >
+                  <div className={`${styles.productImageWrap} img-wrap`}>
+                    <Link href={`/product/${item.id}`} style={{ display: 'block', width: '100%', height: '100%', position: 'absolute', top: 0, left: 0, zIndex: 1 }}>
+                      <Image
+                        src={item.img}
+                        alt={item.title}
+                        fill
+                        className={`${styles.productImage} img-parallax`}
+                      />
+                    </Link>
+                    <AnimatePresence mode="wait">
+                      {quantity === 0 ? (
+                        <motion.button
+                          key="addBtn"
+                          initial={{ opacity: 0, scale: 0.5 }}
+                          animate={{ opacity: 1, scale: 1 }}
+                          exit={{ opacity: 0, scale: 0.5 }}
+                          transition={{ duration: 0.2 }}
+                          className={styles.addToCartBtn}
+                          aria-label="Add to Cart"
+                          onClick={(e) => { e.preventDefault(); addToCart(item); }}
+                          style={{ zIndex: 2 }}
+                        >
+                          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <line x1="12" y1="5" x2="12" y2="19"></line>
+                            <line x1="5" y1="12" x2="19" y2="12"></line>
+                          </svg>
+                        </motion.button>
+                      ) : (
+                        <motion.div
+                          key="controls"
+                          initial={{ opacity: 0, scale: 0.8 }}
+                          animate={{ opacity: 1, scale: 1 }}
+                          exit={{ opacity: 0, scale: 0.8 }}
+                          transition={{ duration: 0.2 }}
+                          className={styles.productCardCartControls}
+                          style={{ zIndex: 2 }}
+                        >
+                          <button onClick={(e) => { e.preventDefault(); updateQuantity(item.title, -1); }} aria-label="Decrease quantity">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                          </button>
+                          <span>{quantity}</span>
+                          <button onClick={(e) => { e.preventDefault(); updateQuantity(item.title, 1); }} aria-label="Increase quantity">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                          </button>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                  </div>
+                  <div className={styles.productInfo}>
                     <h3>{item.title}</h3>
                     <p>{item.price}</p>
-                 </div>
-              </div>
-            )})}
+                  </div>
+                </motion.div>
+              )
+            })}
           </div>
         </div>
-      </motion.section>
+      </section>
 
       {/* Infinite Marquee Reviews */}
-      <motion.section 
-        id="reviews" 
-        className={styles.section} 
+      <motion.section
+        id="reviews"
+        className={styles.section}
         style={{ padding: '0 0 10vw 0' }}
         initial={{ scale: 0.95, opacity: 0, y: 50 }}
         whileInView={{ scale: 1, opacity: 1, y: 0 }}
@@ -260,26 +324,26 @@ export default function Home() {
         viewport={{ once: false, amount: 0.2 }}
       >
         <div className="container">
-           <div className={`${styles.sectionHeader} reveal`} ref={addToRefs}>
-              <span>Praise</span>
-              <h2>Client Stories</h2>
-           </div>
+          <div className={`${styles.sectionHeader} reveal`} ref={addToRefs}>
+            <span>Praise</span>
+            <h2>Client Stories</h2>
+          </div>
         </div>
         <div className={styles.reviewsContainer}>
           <div className={styles.reviewsTrack}>
             {reviews.map((img, i) => (
-               <div key={i} className={styles.reviewItem}>
-                  <Image src={img} alt={`Review ${i}`} fill className={styles.reviewImg} />
-               </div>
+              <div key={i} className={styles.reviewItem}>
+                <Image src={img} alt={`Review ${i}`} fill className={styles.reviewImg} />
+              </div>
             ))}
           </div>
         </div>
       </motion.section>
 
       {/* Contact Section */}
-      <motion.section 
-        id="contact" 
-        className={styles.section} 
+      <motion.section
+        id="contact"
+        className={styles.section}
         style={{ background: 'var(--background)', borderTop: '1px solid var(--accent)' }}
         initial={{ scale: 0.95, opacity: 0, y: 50 }}
         whileInView={{ scale: 1, opacity: 1, y: 0 }}
@@ -291,12 +355,12 @@ export default function Home() {
             <span>Get in Touch</span>
             <h2>Contact Us</h2>
           </div>
-          
+
           <div className={styles.contactWrapper}>
             <div className={`${styles.contactInfo} reveal`} ref={addToRefs}>
               <h3>Let's Create Magic</h3>
               <p>Have a custom order in mind? Want to inquire about bulk gifting? We'd love to hear from you.</p>
-              
+
               <div className={styles.contactDetails}>
                 <div className={styles.contactItem}>
                   <strong>Email</strong>
@@ -308,11 +372,11 @@ export default function Home() {
                 </div>
               </div>
             </div>
-            
-            <form 
-              action="https://formsubmit.co/princeuiet123@gmail.com" 
-              method="POST" 
-              className={`${styles.contactForm} reveal`} 
+
+            <form
+              action="https://formsubmit.co/princeuiet123@gmail.com"
+              method="POST"
+              className={`${styles.contactForm} reveal`}
               ref={addToRefs}
             >
               <input type="hidden" name="_captcha" value="false" />
@@ -339,7 +403,7 @@ export default function Home() {
               <h3 className={styles.footerLogoText}>Wick & Wrap House</h3>
               <p>Exquisite handcrafted candles & luxury gifting to illuminate your most cherished moments.</p>
             </div>
-            
+
             <div className={styles.footerLinks}>
               <h4>Explore</h4>
               <ul>
@@ -348,7 +412,7 @@ export default function Home() {
                 <li><a href="#contact">Contact Us</a></li>
               </ul>
             </div>
-            
+
             <div className={styles.footerConnect}>
               <h4>Follow Us</h4>
               <div className={styles.socialIcons}>
@@ -361,7 +425,7 @@ export default function Home() {
               </div>
             </div>
           </div>
-          
+
           <div className={styles.footerBottom}>
             <span>&copy; {new Date().getFullYear()} Wick n Wrap House. All rights reserved.</span>
           </div>

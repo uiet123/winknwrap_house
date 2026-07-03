@@ -22,7 +22,11 @@ export default function Header() {
             unoptimized={true}
             className={styles.logoImage} 
           />
-          <span>Wick n Wrap House</span>
+          <span className={styles.logoTextDesktop}>Wick n Wrap House</span>
+          <span className={styles.logoTextMobile}>
+            <span className={styles.logoTextTop}>WICK N WRAP</span>
+            <span className={styles.logoTextBottom}>HOUSE</span>
+          </span>
         </Link>
         <div className={styles.navGroup}>
           <nav className={`${styles.nav} ${isMenuOpen ? styles.navOpen : ''}`}>

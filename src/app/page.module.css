@@ -74,6 +74,15 @@
   border: 1px solid var(--primary);
 }
 
+/* Desktop: show full text, hide stacked mobile version */
+.logoTextDesktop {
+  display: block;
+}
+
+.logoTextMobile {
+  display: none;
+}
+
 .navGroup {
   display: flex;
   align-items: center;
@@ -99,44 +108,89 @@
 
 .burgerBtn {
   display: none;
-  flex-direction: column;
-  justify-content: space-around;
-  width: 2rem;
-  height: 2rem;
-  background: transparent;
-  border: none;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  background: rgba(203, 163, 101, 0.08);
+  border: 1px solid rgba(203, 163, 101, 0.25);
+  border-radius: 50%;
   cursor: pointer;
   padding: 0;
   z-index: 1001;
+  position: relative;
+  transition: all 0.4s cubic-bezier(0.25, 1, 0.5, 1);
+  flex-shrink: 0;
+}
+
+.burgerBtn:hover {
+  background: rgba(203, 163, 101, 0.15);
+  border-color: rgba(203, 163, 101, 0.6);
+  box-shadow: 0 0 20px rgba(203, 163, 101, 0.2);
+  transform: scale(1.05);
 }
 
 .burgerBtn span {
-  width: 2rem;
+  display: block;
+  position: absolute;
   height: 2px;
-  background: var(--primary);
-  border-radius: 10px;
-  transition: all 0.3s linear;
-  position: relative;
-  transform-origin: 1px;
+  background: linear-gradient(90deg, var(--primary), #fcf6ba, var(--primary));
+  background-size: 200% auto;
+  border-radius: 4px;
+  transition: all 0.4s cubic-bezier(0.25, 1, 0.5, 1);
+}
+
+.burgerBtn span:nth-child(1) {
+  width: 20px;
+  top: 15px;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+.burgerBtn span:nth-child(2) {
+  width: 14px;
+  top: 23px;
+  left: 50%;
+  transform: translateX(-50%);
+  opacity: 1;
+}
+
+.burgerBtn span:nth-child(3) {
+  width: 20px;
+  top: 31px;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+/* Open state — animated X */
+.burgerBtn.open {
+  background: rgba(203, 163, 101, 0.12);
+  border-color: rgba(203, 163, 101, 0.5);
 }
 
 .burgerBtn.open span:nth-child(1) {
-  transform: rotate(45deg);
+  top: 23px;
+  width: 22px;
+  transform: translateX(-50%) rotate(45deg);
 }
 
 .burgerBtn.open span:nth-child(2) {
   opacity: 0;
+  width: 0;
 }
 
 .burgerBtn.open span:nth-child(3) {
-  transform: rotate(-45deg);
+  top: 23px;
+  width: 22px;
+  transform: translateX(-50%) rotate(-45deg);
 }
 
 .hero {
   height: 100vh;
   width: 100vw;
-  position: sticky;
+  position: fixed;
   top: 0;
+  left: 0;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -188,8 +242,60 @@
   max-width: 1000px;
   padding: 0 2rem;
   z-index: 1;
-  transform: translateY(20px);
-  animation: heroUp 1.5s cubic-bezier(0.2, 1, 0.3, 1) forwards;
+  will-change: transform, opacity;
+}
+
+/* 3D hero: the R3F canvas fills the hero behind the (scroll-revealed) text */
+.hero3dRoot {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.hero3dCanvas {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  /* Let clicks pass through to the CTA; parallax uses a window listener */
+  pointer-events: none;
+}
+
+/* Cancel the one-shot CSS entrance — GSAP fully controls this text now */
+.hero3dText {
+  position: relative;
+  z-index: 1;
+  transform: none;
+  animation: none;
+}
+
+/* Hidden up front (no flash before GSAP takes over); revealed on scroll */
+.hero3dText h1,
+.hero3dText p,
+.hero3dText a {
+  opacity: 0;
+  will-change: transform, opacity;
+}
+
+/* Separate section that scrolls up over the fixed 3D candle hero */
+.hero3dTextSection {
+  position: relative;
+  z-index: 10;
+  min-height: 100vh;
+  margin-top: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  /* Transparent top so the candle retreating backward is visible,
+     fading to solid dark at the bottom to blend into the next section */
+  background: linear-gradient(
+    to bottom,
+    transparent 0%,
+    transparent 40%,
+    rgba(10, 10, 10, 0.6) 65%,
+    var(--background) 100%
+  );
 }
 
 @keyframes heroUp {
@@ -246,6 +352,7 @@
   border-bottom: 1px solid rgba(203, 163, 101, 0.15);
   position: relative;
   z-index: 10;
+  overflow: hidden;
 }
 
 .statsSection .sectionHeader {
@@ -394,6 +501,8 @@
   grid-template-columns: repeat(4, 1fr);
   gap: 2rem;
   margin-bottom: 5vw;
+  perspective: 1200px;
+  overflow: hidden;
 }
 
 .productCard {
@@ -686,6 +795,8 @@
   padding: 6rem 0 2rem;
   background-color: #050505;
   border-top: 1px solid rgba(255, 255, 255, 0.05);
+  position: relative;
+  z-index: 10;
 }
 
 .footerGrid {
@@ -781,24 +892,56 @@
     flex-direction: column;
     justify-content: center;
     align-items: center;
+    gap: 0;
     position: fixed;
     top: 0;
-    right: -100%;
+    left: 0;
     width: 100vw;
     height: 100vh;
-    background: rgba(5, 5, 5, 0.98);
-    backdrop-filter: blur(16px);
-    transition: right 0.4s cubic-bezier(0.25, 1, 0.5, 1);
+    background: rgba(5, 5, 5, 0.97);
+    backdrop-filter: blur(30px);
+    transition: opacity 0.5s ease, visibility 0.5s ease;
     z-index: 1000;
+    opacity: 0;
+    visibility: hidden;
+  }
+
+  /* Subtle gold radial glow in center */
+  .nav::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 300px;
+    height: 300px;
+    background: radial-gradient(circle, rgba(203, 163, 101, 0.06) 0%, transparent 70%);
+    pointer-events: none;
   }
   
   .nav.navOpen {
-    right: 0;
+    opacity: 1;
+    visibility: visible;
   }
   
   .nav a {
-    font-size: 1.8rem;
-    margin: 1.5rem 0;
+    font-size: 2.2rem;
+    font-family: var(--font-cormorant), serif;
+    font-weight: 300;
+    letter-spacing: 0.25em;
+    text-transform: uppercase;
+    padding: 1.8rem 3rem;
+    color: rgba(255, 255, 255, 0.85);
+    position: relative;
+    transition: all 0.4s cubic-bezier(0.25, 1, 0.5, 1);
+    opacity: 1;
+  }
+
+  .nav a:hover,
+  .nav a:active {
+    color: var(--primary);
+    letter-spacing: 0.35em;
+    text-shadow: 0 0 40px rgba(203, 163, 101, 0.3);
   }
   
   .ecommerceGrid {
@@ -819,8 +962,42 @@
 }
 
 @media (max-width: 768px) {
-  .logo span {
+  .logo {
+    gap: 0.65rem;
+  }
+
+  .logoTextDesktop {
     display: none;
+  }
+
+  .logoTextMobile {
+    display: flex;
+    flex-direction: column;
+    line-height: 1;
+  }
+
+  .logoTextTop {
+    font-size: 0.5rem;
+    letter-spacing: 0.25em;
+    color: var(--primary);
+    font-weight: 500;
+    text-transform: uppercase;
+    font-family: var(--font-outfit), sans-serif;
+    margin-bottom: 2px;
+  }
+
+  .logoTextBottom {
+    font-size: 1.1rem;
+    font-family: var(--font-playfair), serif;
+    letter-spacing: 0.2em;
+    color: #fff;
+    font-weight: 400;
+    text-transform: uppercase;
+  }
+
+  .logoImage {
+    width: 40px !important;
+    height: 40px !important;
   }
 
   .heroContent h1 {
@@ -910,39 +1087,66 @@
 .headerActions {
   display: flex;
   align-items: center;
-  gap: 1.5rem;
+  gap: 1rem;
 }
 
 .cartIconBtn {
-  background: none;
-  border: none;
-  color: #fff;
+  width: 48px;
+  height: 48px;
+  background: rgba(203, 163, 101, 0.08);
+  border: 1px solid rgba(203, 163, 101, 0.25);
+  border-radius: 50%;
+  color: var(--primary);
   cursor: pointer;
   position: relative;
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: color 0.3s ease;
+  transition: all 0.4s cubic-bezier(0.25, 1, 0.5, 1);
+  flex-shrink: 0;
+}
+
+.cartIconBtn svg {
+  width: 20px;
+  height: 20px;
+  transition: transform 0.4s cubic-bezier(0.25, 1, 0.5, 1);
+  filter: drop-shadow(0 0 4px rgba(203, 163, 101, 0.2));
 }
 
 .cartIconBtn:hover {
-  color: var(--primary);
+  background: rgba(203, 163, 101, 0.15);
+  border-color: rgba(203, 163, 101, 0.6);
+  box-shadow: 0 0 20px rgba(203, 163, 101, 0.2);
+  transform: scale(1.05);
+}
+
+.cartIconBtn:hover svg {
+  transform: scale(1.1) rotate(-5deg);
 }
 
 .cartBadge {
   position: absolute;
-  top: -8px;
-  right: -8px;
-  background: var(--primary);
+  top: -4px;
+  right: -4px;
+  background: linear-gradient(135deg, var(--primary), #fcf6ba);
   color: #000;
-  font-size: 0.7rem;
-  font-weight: bold;
-  width: 18px;
-  height: 18px;
+  font-size: 0.65rem;
+  font-weight: 800;
+  width: 20px;
+  height: 20px;
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
+  box-shadow: 0 0 12px rgba(203, 163, 101, 0.5);
+  border: 2px solid #050505;
+  animation: badgePop 0.4s cubic-bezier(0.25, 1, 0.5, 1);
+}
+
+@keyframes badgePop {
+  0% { transform: scale(0); }
+  60% { transform: scale(1.3); }
+  100% { transform: scale(1); }
 }
 
 .cartOverlay {
