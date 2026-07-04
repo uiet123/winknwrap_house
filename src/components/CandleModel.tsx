@@ -59,6 +59,8 @@ export default function CandleModel({ scrollProgress }: Props) {
     lastY: 0,
     rotY: 0,   // accumulated Y rotation (full 360° unclamped)
     rotX: 0,   // accumulated X rotation (clamped)
+    // Gesture intent: 'unknown' until first move, then 'rotate' or 'scroll'
+    intent: 'unknown' as 'unknown' | 'rotate' | 'scroll',
   });
 
   // Pinch zoom state — two fingers → scale.
@@ -93,9 +95,11 @@ export default function CandleModel({ scrollProgress }: Props) {
         pinchState.current.lastDist = pinchDistance(e.touches[0], e.touches[1]);
         // Disable single-finger rotation while pinching
         touchState.current.active = false;
+        touchState.current.intent = 'unknown';
       } else if (e.touches.length === 1) {
-        // One finger → start rotate
+        // One finger → prepare to detect intent
         touchState.current.active = true;
+        touchState.current.intent = 'unknown'; // reset on every new touch
         touchState.current.lastX = e.touches[0].clientX;
         touchState.current.lastY = e.touches[0].clientY;
       }
@@ -117,25 +121,42 @@ export default function CandleModel({ scrollProgress }: Props) {
         pinchState.current.lastDist = newDist;
         e.preventDefault(); // prevent page zoom
       } else if (e.touches.length === 1 && touchState.current.active) {
-        // ── Single-finger rotate ─────────────────────────────────────────────
+        // ── Single-finger: detect intent on first move ───────────────────────
         const t = e.touches[0];
         const dx = t.clientX - touchState.current.lastX;
         const dy = t.clientY - touchState.current.lastY;
 
-        const sensitivity = THREE.MathUtils.degToRad(0.6);
-        touchState.current.rotY += dx * sensitivity;
-        touchState.current.rotX += dy * sensitivity;
+        if (touchState.current.intent === 'unknown') {
+          const absDx = Math.abs(dx);
+          const absDy = Math.abs(dy);
+          // Need at least 4px movement to be confident about direction
+          if (absDx > 4 || absDy > 4) {
+            touchState.current.intent = absDx > absDy ? 'rotate' : 'scroll';
+          }
+        }
 
-        // Clamp vertical tilt so the candle doesn't flip upside down.
-        touchState.current.rotX = THREE.MathUtils.clamp(
-          touchState.current.rotX,
-          -Math.PI / 2.2,
-          Math.PI / 2.2
-        );
+        if (touchState.current.intent === 'scroll') {
+          // Let the page scroll normally — do NOT call preventDefault
+          return;
+        }
 
-        touchState.current.lastX = t.clientX;
-        touchState.current.lastY = t.clientY;
-        e.preventDefault(); // prevent page scroll while rotating
+        if (touchState.current.intent === 'rotate') {
+          // ── Rotate the candle ─────────────────────────────────────────────
+          const sensitivity = THREE.MathUtils.degToRad(0.6);
+          touchState.current.rotY += dx * sensitivity;
+          touchState.current.rotX += dy * sensitivity;
+
+          // Clamp vertical tilt so the candle doesn't flip upside down.
+          touchState.current.rotX = THREE.MathUtils.clamp(
+            touchState.current.rotX,
+            -Math.PI / 2.2,
+            Math.PI / 2.2
+          );
+
+          touchState.current.lastX = t.clientX;
+          touchState.current.lastY = t.clientY;
+          e.preventDefault(); // only block scroll when intentionally rotating
+        }
       }
     };
 
