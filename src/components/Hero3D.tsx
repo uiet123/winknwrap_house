@@ -43,6 +43,14 @@ export default function Hero3D() {
   const rootRef = useRef<HTMLDivElement>(null);
   const glow = useGlowTexture();
 
+  // Mobile gets a closer camera so the candle looks larger on small screens.
+  const isMobile =
+    typeof window !== "undefined"
+      ? window.matchMedia("(pointer: coarse)").matches
+      : false;
+  const cameraZ = isMobile ? 9 : 15;
+  const cameraFov = isMobile ? 42 : 35;
+
   useEffect(() => {
     const ctx = gsap.context(() => {
       // Track scroll progress so the candle can fade out.
@@ -71,7 +79,7 @@ export default function Hero3D() {
           shadows="soft"
           dpr={[1, 2]}
           gl={{ antialias: true, alpha: true }}
-          camera={{ position: [0, 0, 15], fov: 35 }}
+          camera={{ position: [0, 0, cameraZ], fov: cameraFov }}
         >
           <ambientLight intensity={0.5} />
           <directionalLight
